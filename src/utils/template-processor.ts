@@ -1,5 +1,6 @@
 import { EmailTask } from '../models/types';
 import logger from '../config/logger';
+import { env } from '../config/environment';
 
 interface ProcessedContent {
   subject: string;
@@ -63,37 +64,37 @@ export function processTemplate(
 
 // Find any remaining unprocessed parameters
 function findUnprocessedParams(content: string): string[] {
-    const paramRegex = /{{([^{}]+)}}/g;
-    const matches = [...content.matchAll(paramRegex)];
-    return matches.map(match => match[1].trim());
-  }
-  
-  // Add link tracking to HTML content
-  export function addLinkTracking(
-    html: string,
-    campaignId: string,
-    recipientId: string,
-    baseUrl: string
-  ): string {
-    try {
-      // Match all anchor tags with href attributes
-      const linkRegex = /<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["']([^>]*)>(.*?)<\/a>/gi;
+  const paramRegex = /{{([^{}]+)}}/g;
+  const matches = [...content.matchAll(paramRegex)];
+  return matches.map(match => match[1].trim());
+}
+
+// Add link tracking to HTML content
+export function addLinkTracking(
+  html: string,
+  campaignId: string,
+  recipientId: string,
+  baseUrl: string = env.api.baseUrl
+): string {
+  try {
+    // Match all anchor tags with href attributes
+    const linkRegex = /<a\s+(?:[^>]*?\s+)?href=["']([^"']*)["']([^>]*)>(.*?)<\/a>/gi;
+    
+    // Replace links with tracked versions
+    return html.replace(linkRegex, (match, url, attrs, linkText) => {
+      // Skip tracking for anchors, mailto, tel links
+      if (url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
+        return match;
+      }
       
-      // Replace links with tracked versions
-      return html.replace(linkRegex, (match, url, attrs, linkText) => {
-        // Skip tracking for anchors, mailto, tel links
-        if (url.startsWith('#') || url.startsWith('mailto:') || url.startsWith('tel:')) {
-          return match;
-        }
-        
-        // Create tracking URL
-        const trackingUrl = `${baseUrl}/api/track/click?c=${campaignId}&r=${recipientId}&url=${encodeURIComponent(url)}&t=${Date.now()}`;
-        
-        // Return tracked link
-        return `<a href="${trackingUrl}"${attrs}>${linkText}</a>`;
-      });
-    } catch (error) {
-      logger.error(`Error adding link tracking: ${error instanceof Error ? error.message : String(error)}`);
-      return html; // Return original HTML on error
-    }
+      // Create tracking URL
+      const trackingUrl = `${baseUrl}/api/track/click?c=${campaignId}&r=${recipientId}&url=${encodeURIComponent(url)}&t=${Date.now()}`;
+      
+      // Return tracked link
+      return `<a href="${trackingUrl}"${attrs}>${linkText}</a>`;
+    });
+  } catch (error) {
+    logger.error(`Error adding link tracking: ${error instanceof Error ? error.message : String(error)}`);
+    return html; // Return original HTML on error
   }
+}

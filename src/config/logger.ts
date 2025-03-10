@@ -1,4 +1,3 @@
-//src/config/logger.ts
 import winston from 'winston';
 import path from 'path';
 import fs from 'fs';
@@ -19,18 +18,20 @@ const logFormat = winston.format.combine(
   })
 );
 
-// Create logger
-const logger = winston.createLogger({
-  level: env.logging.level,
-  format: logFormat,
-  transports: [
-    // Write logs to console
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        logFormat
-      ),
-    }),
+// Configure transports based on environment
+const transports: winston.transport[] = [
+  // Always log to console
+  new winston.transports.Console({
+    format: winston.format.combine(
+      winston.format.colorize(),
+      logFormat
+    ),
+  })
+];
+
+// Add file transports in production or if explicitly enabled
+if (!env.isDevelopment || process.env.ENABLE_FILE_LOGGING === 'true') {
+  transports.push(
     // Write to all logs with level 'info' and below to combined.log
     new winston.transports.File({ 
       filename: path.join(logDir, 'combined.log'),
@@ -43,8 +44,17 @@ const logger = winston.createLogger({
       level: 'error',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
-    }),
-  ],
+    })
+  );
+}
+
+// Create logger
+const logger = winston.createLogger({
+  level: env.logging.level,
+  format: logFormat,
+  transports,
+  // Don't exit on error
+  exitOnError: false
 });
 
 export default logger;

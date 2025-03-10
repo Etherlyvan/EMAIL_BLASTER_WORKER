@@ -82,7 +82,7 @@ app.get('/metrics', (req: Request, res: Response) => {
   // Simple authorization check
   if (!authHeader || authHeader !== `Bearer ${env.api.secretKey}`) {
     res.status(401).json({ error: 'Unauthorized' });
-    return; // Just return without a value, don't return the response
+    return;
   }
   
   const workerStats = taskManager.getStats();
@@ -108,7 +108,7 @@ export function startHealthServer(): void {
   
   const port = env.health.port;
   
-  // Explicit type for the callback function to avoid type inference issues
+  // Define callback explicitly
   const callback = () => {
     logger.info(`Health check server running on port ${port}`);
   };

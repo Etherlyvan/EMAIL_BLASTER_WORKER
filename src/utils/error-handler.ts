@@ -1,4 +1,5 @@
 import logger from '../config/logger';
+import queueService from '../services/queue.service';
 
 // Global uncaught exception handler
 export function setupGlobalErrorHandlers(): void {
@@ -34,7 +35,7 @@ export function setupGlobalErrorHandlers(): void {
 
 // Graceful shutdown function
 let isShuttingDown = false;
-function gracefulShutdown() {
+async function gracefulShutdown() {
   if (isShuttingDown) return;
   isShuttingDown = true;
   
@@ -46,13 +47,21 @@ function gracefulShutdown() {
     process.exit(1);
   }, 30000); // 30 seconds
   
-  // You can import and call cleanup functions for services here
-  // For example: await queueService.close();
-  
-  // Clear the timeout and exit normally if all cleanup is successful
-  clearTimeout(forceExitTimeout);
-  logger.info('Graceful shutdown completed');
-  process.exit(0);
+  try {
+    // Close queue connection
+    logger.info('Closing queue connections...');
+    await queueService.close();
+    
+    // Add any other cleanup tasks here
+    
+    // Clear the timeout and exit normally
+    clearTimeout(forceExitTimeout);
+    logger.info('Graceful shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    logger.error(`Error during shutdown: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  }
 }
 
 // Helper function to safely execute async functions with retries

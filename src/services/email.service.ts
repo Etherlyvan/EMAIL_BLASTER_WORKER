@@ -2,9 +2,10 @@ import nodemailer, { Transporter } from 'nodemailer';
 import { EmailTask, TaskResult } from '../models/types';
 import logger from '../config/logger';
 import { processTemplate } from '../utils/template-processor';
+import { env } from '../config/environment'; // Add this import for the env variable
 
 class EmailService {
-  private transporters: Map<string, { 
+  private readonly transporters: Map<string, { // Add readonly modifier as recommended by SonarLint
     transporter: Transporter; 
     lastUsed: Date;
     usageCount: number;
@@ -157,7 +158,7 @@ class EmailService {
 
   // Add tracking pixel to email
   private addTrackingPixel(html: string, campaignId: string, recipientId: string): string {
-    const trackingUrl = `${process.env.API_BASE_URL}/api/track/open?c=${campaignId}&r=${recipientId}&t=${Date.now()}`;
+    const trackingUrl = `${env.api.baseUrl}/api/track/open?c=${campaignId}&r=${recipientId}&t=${Date.now()}`;
     const trackingPixel = `<img src="${trackingUrl}" width="1" height="1" alt="" style="display:none;" />`;
     
     // Add before closing body tag if exists

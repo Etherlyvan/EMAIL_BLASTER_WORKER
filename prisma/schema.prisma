@@ -1,0 +1,27 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Optional models for direct database access if needed
+// Example model for tracking email status
+model EmailLog {
+  id          String   @id @default(uuid())
+  campaignId  String
+  recipientId String
+  messageId   String?
+  status      String
+  error       String?
+  sentAt      DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([recipientId])
+}

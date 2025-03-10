@@ -7,14 +7,18 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies with explicit TypeScript installation
-RUN npm ci && \
-    npm install -g typescript && \
-    which tsc && \
-    chmod +x $(which tsc)
+# Install all dependencies including dev dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Generate Prisma client if schema exists
+RUN if [ -f prisma/schema.prisma ]; then \
+      npx prisma generate; \
+    else \
+      echo "No Prisma schema found, skipping generation"; \
+    fi
 
 # Build TypeScript code using npx for explicit path resolution
 RUN npx tsc
@@ -33,6 +37,7 @@ RUN npm ci --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 
 # Set environment variables
 ENV NODE_ENV=production

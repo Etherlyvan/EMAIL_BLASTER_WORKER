@@ -5,7 +5,8 @@ import logger from '../config/logger';
 import { EmailTask, QueueStatus } from '../models/types';
 
 class QueueService {
-  private connection: any = null; 
+  // Define connection as any to avoid type conflicts
+  private connection: any = null;
   private channel: Channel | null = null;
   private connecting: boolean = false;
   private reconnectTimeout: NodeJS.Timeout | null = null;
@@ -21,6 +22,7 @@ class QueueService {
     
     try {
       logger.info('Connecting to RabbitMQ...');
+      // Connect to RabbitMQ
       this.connection = await amqplib.connect(env.rabbitmq.url);
       
       if (!this.connection) {
@@ -31,8 +33,8 @@ class QueueService {
       this.connection.on('error', this.handleConnectionError.bind(this));
       this.connection.on('close', this.handleConnectionClosed.bind(this));
       
-      // Create channel with type assertion to resolve TypeScript error
-      this.channel = await (this.connection as any).createChannel();
+      // Create channel with proper type handling
+      this.channel = await this.connection.createChannel();
       
       if (!this.channel) {
         throw new Error('Failed to create channel');
@@ -259,8 +261,7 @@ class QueueService {
       }
       
       if (this.connection) {
-        // Use type assertion to fix TypeScript error with close() method
-        await (this.connection as any).close();
+        await this.connection.close();
         this.connection = null;
       }
       

@@ -1,4 +1,4 @@
-// src/models/types.ts
+// Recipient information
 export interface Recipient {
     id: string;
     email: string;
