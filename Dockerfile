@@ -12,7 +12,11 @@ RUN npm ci --only=production
 COPY . .
 
 # Generate Prisma client
-RUN npx prisma generate
+RUN if [ -f prisma/schema.prisma ]; then \
+      npx prisma generate; \
+    else \
+      echo "No Prisma schema found, skipping generation"; \
+    fi
 
 # Build TypeScript code
 RUN npm run build
