@@ -7,15 +7,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies)
-RUN npm ci
+# Install all dependencies with explicit TypeScript installation
+RUN npm ci && \
+    npm install -g typescript && \
+    which tsc && \
+    chmod +x $(which tsc)
 
 # Copy source code
 COPY . .
 
-
-# Build TypeScript code
-RUN npm run build
+# Build TypeScript code using npx for explicit path resolution
+RUN npx tsc
 
 # Production stage
 FROM node:18-alpine
@@ -31,8 +33,6 @@ RUN npm ci --only=production
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
 # Set environment variables
 ENV NODE_ENV=production
