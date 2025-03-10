@@ -1,46 +1,32 @@
-# Build stage with memory optimization
-FROM node:18-alpine AS builder
+# Use a specific Node.js version for better stability
+FROM node:18.17.1-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files first for better layer caching
+COPY package.json package-lock.json* ./
 
-# Install dependencies with optimizations to reduce memory usage
-RUN npm config set fetch-retry-maxtimeout 60000 \
-    && npm config set fetch-timeout 60000 \
-    && npm config set network-timeout 60000 \
-    && npm config set production false \
-    && NODE_OPTIONS="--max-old-space-size=2048" npm ci --no-audit --prefer-offline
+# Install dependencies with a simplified, reliable approach
+RUN npm install --no-fund --no-optional
 
-# Copy source code
+# Copy application code
 COPY . .
 
-# Generate Prisma client if schema exists (with memory optimization)
-RUN if [ -f prisma/schema.prisma ]; then \
-      NODE_OPTIONS="--max-old-space-size=2048" npx prisma generate; \
-    else \
-      echo "No Prisma schema found, skipping generation"; \
-    fi
+# Build TypeScript code with simplified options
+RUN npm run railway:build
 
-# Build TypeScript code (with memory optimization)
-RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
-
-# Production stage with memory optimization
-FROM node:18-alpine AS production
+# Production stage with minimal dependencies
+FROM node:18.17.1-alpine
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json* ./
 
-# Install only production dependencies with optimizations
-RUN npm config set fetch-retry-maxtimeout 60000 \
-    && npm config set fetch-timeout 60000 \
-    && npm config set network-timeout 60000 \
-    && NODE_OPTIONS="--max-old-space-size=2048" npm ci --only=production --no-audit --prefer-offline
+# Install only production dependencies with minimal options
+RUN npm install --omit=dev --no-fund --no-optional
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
