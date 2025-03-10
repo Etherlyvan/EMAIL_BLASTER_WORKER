@@ -1,4 +1,4 @@
-# Build stage
+# Build stage with memory optimization
 FROM node:18-alpine AS builder
 
 # Set working directory
@@ -7,24 +7,28 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies including dev dependencies
-RUN npm ci
+# Install dependencies with optimizations to reduce memory usage
+RUN npm config set fetch-retry-maxtimeout 60000 \
+    && npm config set fetch-timeout 60000 \
+    && npm config set network-timeout 60000 \
+    && npm config set production false \
+    && NODE_OPTIONS="--max-old-space-size=2048" npm ci --no-audit --prefer-offline
 
 # Copy source code
 COPY . .
 
-# Generate Prisma client if schema exists
+# Generate Prisma client if schema exists (with memory optimization)
 RUN if [ -f prisma/schema.prisma ]; then \
-      npx prisma generate; \
+      NODE_OPTIONS="--max-old-space-size=2048" npx prisma generate; \
     else \
       echo "No Prisma schema found, skipping generation"; \
     fi
 
-# Build TypeScript code using npx for explicit path resolution
-RUN npx tsc
+# Build TypeScript code (with memory optimization)
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
-# Production stage
-FROM node:18-alpine
+# Production stage with memory optimization
+FROM node:18-alpine AS production
 
 # Set working directory
 WORKDIR /app
@@ -32,8 +36,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production
+# Install only production dependencies with optimizations
+RUN npm config set fetch-retry-maxtimeout 60000 \
+    && npm config set fetch-timeout 60000 \
+    && npm config set network-timeout 60000 \
+    && NODE_OPTIONS="--max-old-space-size=2048" npm ci --only=production --no-audit --prefer-offline
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
