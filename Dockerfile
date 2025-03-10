@@ -1,35 +1,37 @@
-# Use a specific Node.js version for better stability
-FROM node:18.17.1-alpine AS builder
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files first for better layer caching
-COPY package.json package-lock.json* ./
-
-# Install dependencies with a simplified, reliable approach
-RUN npm install --no-fund --no-optional
-
-# Copy application code
-COPY . .
-
-# Build TypeScript code with simplified options
-RUN npm run railway:build
-
-# Production stage with minimal dependencies
-FROM node:18.17.1-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 
-# Install only production dependencies with minimal options
-RUN npm install --omit=dev --no-fund --no-optional
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build TypeScript code
+# Use standard build script instead of custom railway:build
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies
+RUN npm install --omit=dev
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
+# Copy prisma directory if it exists
 COPY --from=builder /app/prisma ./prisma
 
 # Set environment variables
