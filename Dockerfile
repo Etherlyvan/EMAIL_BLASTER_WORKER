@@ -7,15 +7,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies with explicit TypeScript installation
+RUN npm install && \
+    npm install -g typescript && \
+    chmod +x /usr/local/bin/tsc
 
 # Copy source code
 COPY . .
 
-# Build TypeScript code
-# Use standard build script instead of custom railway:build
-RUN npm run build
+# Build using npx to ensure proper path resolution
+RUN npx tsc
 
 # Production stage
 FROM node:18-alpine
